@@ -1,0 +1,57 @@
+#!/bin/bash -xe
+#
+# Build package openresty FPM/DEB
+#
+# Variables set in Jenkins
+BUILDHOST=$1
+TYPE=$2
+VERSION=$3
+REMOTE_DIR=$4
+EXTRA=$5
+
+build_dir=`mktemp -d`
+
+cd $build_dir
+
+wget -O openresty.tar.gz http://openresty.org/download/ngx_openresty-${VERSION}.tar.gz
+tar xzvf openresty.tar.gz
+
+wget -O statsd.zip https://github.com/zebrafishlabs/nginx-statsd/archive/master.zip
+unzip statsd.zip
+
+cd ngx_openresty-${VERSION}
+
+./configure \
+--prefix=/opt/openresty \
+--with-ipv6 \
+--with-http_stub_status_module \
+--with-http_ssl_module \
+--with-http_realip_module \
+--without-mail_pop3_module \
+--without-mail_imap_module \
+--without-mail_smtp_module \
+--without-http_memcached_module \
+--with-http_geoip_module \
+--without-http_fastcgi_module \
+--without-http_scgi_module \
+--without-http_redis_module \
+--without-http_redis2_module \
+--without-http_rds_json_module \
+--without-http_rds_csv_module \
+--add-module=../nginx-statsd-master \
+
+make
+sudo make install
+
+cd /home/jenkins
+
+
+if [[ $TYPE == "rpm" ]]; then
+    fpm -t rpm -s dir --name ngx_openresty --version $VERSION --iteration $EXTRA --description "Nginx openresty" /opt/openresty
+    PACKAGE=`ls /home/jenkins/ | grep ngx_openresty | grep rpm`
+elif [[ $TYPE == "deb" ]]; then
+    fpm -t deb -s dir --name openresty --version $VERSION --iteration $EXTRA --description "Nginx openresty" /opt/openresty
+    PACKAGE=`ls /home/jenkins/ | grep openresty | grep deb | grep $VERSION`
+fi
+
+scp /home/jenkins/$PACKAGE $BUILDHOST:/var/tmp/$REMOTE_DIR
