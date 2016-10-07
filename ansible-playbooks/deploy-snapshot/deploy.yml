@@ -1,0 +1,20 @@
+---
+- hosts: "{{ Environment }}"
+  remote_user: deployer
+  tasks: 
+    - name: Stop and remove container 
+      shell: docker-compose stop; docker-compose rm -f
+      args:
+         chdir: /home/dockers/{{ ServiceFolder }}
+
+    - name: Remove image 
+      shell: docker rmi "{{ Image }}":"{{ Tag }}"
+      ignore_errors: yes
+
+    - name: Pull an image and run container
+      shell: docker-compose stop; docker-compose up -d
+      args:  
+         chdir: /home/dockers/{{ ServiceFolder }}
+  vars:
+      ansible_ssh_pipelining: no
+      DOCKER_HOST: tcp://127.0.0.1:4243
