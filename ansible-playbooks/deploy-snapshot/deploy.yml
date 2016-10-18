@@ -3,7 +3,7 @@
   remote_user: deployer
   tasks: 
     - name: Stop and remove container 
-      shell: docker-compose stop; docker-compose rm -f
+      shell: docker-compose stop; docker-compose down
       args:
          chdir: /home/dockers/{{ ServiceFolder }}
 
